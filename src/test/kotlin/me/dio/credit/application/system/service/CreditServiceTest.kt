@@ -44,19 +44,19 @@ class CreditServiceTest {
   @Test
   fun `should create credit `() {
     //given
-    val credit: Credit = buildCredit()
+    val creditFake: Credit = buildCredit()
     val customerId: Long = 1L
 
-    every { customerService.findById(customerId) } returns credit.customer!!
-    every { creditRepository.save(credit) } returns credit
+    every { customerService.findById(customerId) } returns creditFake.customer!!
+    every { creditRepository.save(creditFake) } returns creditFake
     //when
-    val actual: Credit = this.creditService.save(credit)
+    val actual: Credit = this.creditService.save(creditFake)
     //then
     verify(exactly = 1) { customerService.findById(customerId) }
-    verify(exactly = 1) { creditRepository.save(credit) }
+    verify(exactly = 1) { creditRepository.save(creditFake) }
 
     Assertions.assertThat(actual).isNotNull
-    Assertions.assertThat(actual).isSameAs(credit)
+    Assertions.assertThat(actual).isSameAs(creditFake)
   }
 
   @Test
