@@ -62,9 +62,9 @@ class CreditResourceTest {
     @Test
     fun `should create a credit and return 201 status`() {
         //given
-        customerRepository.save(builderCustomerDto().toEntity())
+        val customer: Customer = customerRepository.save(builderCustomerDto().toEntity())
 
-        val creditDto: CreditDto = builderCreditDto()
+        val creditDto: CreditDto = builderCreditDto(customerId = customer.id!!)
         val valueAsString: String = objectMapper.writeValueAsString(creditDto)
 
         //when
@@ -80,6 +80,53 @@ class CreditResourceTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.emailCustomer").value("felipe@teste.com"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.incomeCustomer").value(3000.0))
             .andDo(MockMvcResultHandlers.print())
+    }
+
+    @Test
+    fun `should not save a credit with numberOfInstallment greater than 48 installments and return 400 status`() {
+        //given
+        customerRepository.save(builderCustomerDto().toEntity())
+
+        val creditDto: CreditDto = builderCreditDto(numberOfInstallments = 50)
+        val valueAsString: String = objectMapper.writeValueAsString(creditDto)
+
+        //when
+        //then
+        mockMvc.perform(
+            MockMvcRequestBuilders.post(URL)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(valueAsString)
+        )
+        .andExpect(MockMvcResultMatchers.status().isBadRequest)
+        .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Bad Request! Consult the documentation"))
+        .andExpect(MockMvcResultMatchers.jsonPath("$.timestamp").exists())
+        .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(400))
+        .andExpect(
+            MockMvcResultMatchers.jsonPath("$.exception")
+            .value("class org.springframework.web.bind.MethodArgumentNotValidException")
+        )
+        .andExpect(MockMvcResultMatchers.jsonPath("$.details[*]").isNotEmpty)
+        .andDo(MockMvcResultHandlers.print())
+    }
+
+    @Test
+    fun `should find list of credits by customer id and return 200 status`() {
+
+        //given
+        val customer: Customer = customerRepository.save(builderCustomerDto().toEntity())
+        creditRepository.save(builderCreditDto(customerId = customer.id!!, numberOfInstallments = 10).toEntity())
+        creditRepository.save(builderCreditDto(customerId = customer.id!!, numberOfInstallments = 5).toEntity())
+
+        //when
+        //then
+        mockMvc.perform(
+            MockMvcRequestBuilders.get("${CreditResourceTest.URL}")
+            .accept(MediaType.APPLICATION_JSON)
+            .param("customerId", customer.id.toString())
+        )
+        .andExpect(MockMvcResultMatchers.status().isOk)
+        .andExpect(MockMvcResultMatchers.jsonPath("$.[*]").exists())
+        .andDo(MockMvcResultHandlers.print())
     }
 
     private fun builderCreditDto(
